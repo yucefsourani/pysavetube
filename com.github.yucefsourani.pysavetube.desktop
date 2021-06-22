@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Pysavetube
+GenericName=PySaveTube Video Downloader
+Comment=Video Downloader
+Terminal=false
+TryExec=pysavetube.py
+Exec=pysavetube.py
+Icon=com.github.yucefsourani.pysavetube.png
+Categories=GTK;Utility;Settings;
+StartupNotify=false
