@@ -4,6 +4,10 @@ https://arfedora.blogspot.com
 
 Python Program To Download Videos.
 
+# Require 
+
+libhandy
+
 
 # Require ( for video  )  # Video playback is Disabled at the moment  
 gstreamer1
