@@ -13,7 +13,7 @@ Requires:       python3-gobject
 Requires:       gtk3
 Requires:       gettext
 Requires:       gstreamer1-plugins-good-gtk
-Requires:       libhandy>1
+Requires:       libhandy
 
 %description
 Videos Downloader.
@@ -43,6 +43,6 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Thu Jun 22 2021 yucuf sourani <youssef.m.sourani@gmail.com> 1.0-1
+* Tue Jun 22 2021 yucuf sourani <youssef.m.sourani@gmail.com> 1.0-1
 - Initial For Fedora 
 
