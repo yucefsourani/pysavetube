@@ -5,7 +5,7 @@ https://arfedora.blogspot.com
 Python Program To Download Videos.
 
 
-# Require ( for video  )
+# Require ( for video  )  # Video playback is Disabled at the moment  
 gstreamer1
 
 gstreamer1-plugins-good
