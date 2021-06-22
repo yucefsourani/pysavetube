@@ -4,12 +4,12 @@ https://arfedora.blogspot.com
 
 Python Program To Download Videos.
 
-# Require 
+# Requires 
 
 libhandy
 
 
-# Require ( for video  )  # Video playback is Disabled at the moment  
+# Requires ( for video  )  # Video playback is Disabled at the moment  
 gstreamer1
 
 gstreamer1-plugins-good
