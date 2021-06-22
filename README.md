@@ -25,6 +25,8 @@ gstreamer1-plugins-good-gtk
 
 ![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/master/Screenshot5.png "Screenshot")
 
+![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/master/Screenshot6.png "Screenshot")
+
 
 
 
@@ -38,12 +40,8 @@ gstreamer1-plugins-good-gtk
    
 # Other Distro 
 
-   clone repo and run pyfbdown.py
+   clone repo and run pysavetube.py
 
    or to  install run "sudo make install"
   
 
-
-# Install On Windows (Visual C++ Redistributable)
-
-  <https://github.com/yucefsourani/pyfbdown/releases/download/1.0/pyfbdown-setup.exe>
