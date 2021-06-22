@@ -12,6 +12,7 @@ BuildRequires:  gettext
 Requires:       python3-gobject
 Requires:       gtk3
 Requires:       gettext
+Requires:       gstreamer1-plugins-good
 Requires:       gstreamer1-plugins-good-gtk
 Requires:       libhandy
 
