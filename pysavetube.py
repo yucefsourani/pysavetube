@@ -404,6 +404,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), style_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
         self.all_video_info = {}
+        self.__all_video = {}
         self.config__ = get_metadata_info()
         
         self.__spinner = Gtk.Spinner()
@@ -800,11 +801,15 @@ class FBDownloader(Gtk.ApplicationWindow):
         #    url_ = url_.split("?")[0]
         #file__ = Gio.File.new_for_uri(url_)
         #file__.read_async(1,None,self.on_load_image_finish,ggg)
+        #media_s = Gtk.MediaStream()
         ggg = Gtk.Video.new_for_file(Gio.file_new_for_uri(result[-1][4]))
+        media_s = ggg.get_media_stream()
+        #media_s.
         ggg.set_size_request(150,150)
         ggg.set_hexpand(True)
         ggg.set_vexpand(True)
         #ggg.set_halign(Gtk.Align.CENTER)
+        self.__all_video.setdefault(result[-1][4] , media_s)
 
         
         if not win:
@@ -839,7 +844,7 @@ class FBDownloader(Gtk.ApplicationWindow):
             h.append(v1)
 
         button.connect("clicked",self.on_download,progb,store,combo,cancel_button,close_button)
-        close_button.connect("clicked",self.on_close,row,result)
+        close_button.connect("clicked",self.on_close,row,result,)
         progb.hide()
         
     def on_close(self,button,row,result,force=False):
@@ -852,6 +857,9 @@ class FBDownloader(Gtk.ApplicationWindow):
             self.infobar2.func   = self.on_close
             self.infobar2.show__()
             return
+        if result[-1][4] in self.__all_video.keys():
+            self.__all_video[result[-1][4]].set_playing(False)
+            del self.__all_video[result[-1][4]]
         self.listbox.remove(row)
         self.config__["current_links"].remove(result)
         change_metadata_info(self.config__)
