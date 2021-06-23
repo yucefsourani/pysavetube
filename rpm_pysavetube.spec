@@ -1,5 +1,5 @@
 Name:           pysavetube
-Version:        1.0
+Version:        2.0
 Release:        1%{?dist}
 Summary:        Videos Downloader
 License:        GPLv3     
@@ -10,11 +10,11 @@ BuildRequires:  python3-devel
 BuildRequires:  make
 BuildRequires:  gettext
 Requires:       python3-gobject
-Requires:       gtk3
+Requires:       gtk4
 Requires:       gettext
 Requires:       gstreamer1-plugins-good
 Requires:       gstreamer1-plugins-good-gtk
-Requires:       libhandy
+Requires:       libadwaita
 
 %description
 Videos Downloader.
@@ -30,10 +30,9 @@ Videos Downloader.
 rm -rf $RPM_BUILD_ROOT
 %make_install
 
-#%find_lang %{name}
+%find_lang %{name}
 
-#%files -f %{name}.lang
-%files
+%files -f %{name}.lang
 %doc README.md LICENSE
 %{python3_sitelib}/*
 %{_bindir}/pysavetube.py
@@ -45,6 +44,6 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Tue Jun 22 2021 yucuf sourani <youssef.m.sourani@gmail.com> 1.0-1
+* Tue Jun 29 2021 yucuf sourani <youssef.m.sourani@gmail.com> 2.0-1
 - Initial For Fedora 
 

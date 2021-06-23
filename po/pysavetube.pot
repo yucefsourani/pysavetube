@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-06-22 16:37+0300\n"
+"POT-Creation-Date: 2021-06-23 19:46+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,145 +17,153 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: ../pysavetube.py:348 ../pysavetube.py:395
+#: ../pysavetube.py:248 ../pysavetube.py:295
 msgid "Done"
 msgstr ""
 
-#: ../pysavetube.py:368
+#: ../pysavetube.py:268
 msgid "Canceled"
 msgstr ""
 
-#: ../pysavetube.py:399
+#: ../pysavetube.py:299
 msgid "Fail"
 msgstr ""
 
-#: ../pysavetube.py:559
+#: ../pysavetube.py:469
 msgid "Url"
 msgstr ""
 
-#: ../pysavetube.py:568
+#: ../pysavetube.py:478
 msgid "Enter  Video Url..."
 msgstr ""
 
-#: ../pysavetube.py:575
+#: ../pysavetube.py:485
 msgid "Get Info"
 msgstr ""
 
-#: ../pysavetube.py:589
+#: ../pysavetube.py:499
 msgid "Network Status"
 msgstr ""
 
-#: ../pysavetube.py:592 ../pysavetube.py:942 ../pysavetube.py:943
+#: ../pysavetube.py:504 ../pysavetube.py:924 ../pysavetube.py:925
 msgid "Network Connected."
 msgstr ""
 
-#: ../pysavetube.py:595 ../pysavetube.py:596 ../pysavetube.py:947
-#: ../pysavetube.py:949
+#: ../pysavetube.py:507 ../pysavetube.py:508 ../pysavetube.py:929
+#: ../pysavetube.py:931
 msgid "Network Error."
 msgstr ""
 
-#: ../pysavetube.py:604
+#: ../pysavetube.py:517
 msgid "Update Youtube-dl"
 msgstr ""
 
-#: ../pysavetube.py:611
+#: ../pysavetube.py:526
 msgid "Youtube-dl Status"
 msgstr ""
 
-#: ../pysavetube.py:614
+#: ../pysavetube.py:529
 msgid "Install Youtube-dl"
 msgstr ""
 
-#: ../pysavetube.py:618
+#: ../pysavetube.py:533
 msgid "Youtube-dl not found"
 msgstr ""
 
-#: ../pysavetube.py:626 ../pysavetube.py:1028
+#: ../pysavetube.py:540 ../pysavetube.py:1019
 msgid "Version : "
 msgstr ""
 
-#: ../pysavetube.py:646
+#: ../pysavetube.py:576
 msgid "Login"
 msgstr ""
 
-#: ../pysavetube.py:648
+#: ../pysavetube.py:578
 msgid "Username"
 msgstr ""
 
-#: ../pysavetube.py:657
+#: ../pysavetube.py:587
 msgid "Password"
 msgstr ""
 
-#: ../pysavetube.py:668
+#: ../pysavetube.py:598
 msgid "Use Password"
 msgstr ""
 
-#: ../pysavetube.py:682
+#: ../pysavetube.py:612
 msgid "Timeout"
 msgstr ""
 
-#: ../pysavetube.py:780
+#: ../pysavetube.py:692
+msgid "Playlist not supported"
+msgstr ""
+
+#: ../pysavetube.py:727
 msgid "Extractor not supported"
 msgstr ""
 
-#: ../pysavetube.py:864
+#: ../pysavetube.py:845
 msgid "Remove Task"
 msgstr ""
 
-#: ../pysavetube.py:866
+#: ../pysavetube.py:847
 msgid "Download"
 msgstr ""
 
-#: ../pysavetube.py:868
+#: ../pysavetube.py:849
 msgid "Cancel"
 msgstr ""
 
-#: ../pysavetube.py:884
+#: ../pysavetube.py:864
 msgid ""
 "Are You Sure\n"
 "You Want To Remove This Task?"
 msgstr ""
 
-#: ../pysavetube.py:886
+#: ../pysavetube.py:866
 msgid "Remove"
 msgstr ""
 
-#: ../pysavetube.py:907
+#: ../pysavetube.py:889
 msgid "Already Exists"
 msgstr ""
 
-#: ../pysavetube.py:1045
+#: ../pysavetube.py:1025
+msgid "New Version : "
+msgstr ""
+
+#: ../pysavetube.py:1036
 msgid ""
 "ERROR:\n"
 "can't install youtube-dl.\n"
 "Please try again later."
 msgstr ""
 
-#: ../pysavetube.py:1047
+#: ../pysavetube.py:1038
 msgid ""
 "ERROR:\n"
 "can't find the lastes version.\n"
 "Please try again later."
 msgstr ""
 
-#: ../pysavetube.py:1049
+#: ../pysavetube.py:1040
 msgid "youtube-dl is up-to-date;"
 msgstr ""
 
-#: ../pysavetube.py:1051
+#: ../pysavetube.py:1042
 msgid "youtube-dl need update to:"
 msgstr ""
 
-#: ../pysavetube.py:1061
+#: ../pysavetube.py:1052
 msgid "Searching for update..."
 msgstr ""
 
-#: ../pysavetube.py:1116
+#: ../pysavetube.py:1107
 msgid ""
 "Tasks Running In Background,\n"
 "Are You Sure You Want To Exit?"
 msgstr ""
 
-#: ../pysavetube.py:1117
+#: ../pysavetube.py:1108
 msgid "Exit"
 msgstr ""
