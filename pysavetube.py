@@ -413,7 +413,7 @@ class FBDownloader(Gtk.ApplicationWindow):
 
         
         headerbar = Adw.HeaderBar()
-        headerbar.set_decoration_layout("close")
+        headerbar.set_decoration_layout(":close")
         #headerbar.set_show_close_button(True)
         self.set_titlebar(headerbar)
         
@@ -571,6 +571,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         
         listbox = Gtk.ListBox.new()
         
+
         action_row = Adw.ExpanderRow.new()
         action_row.set_title(_("Login"))
         self.name_entry = Gtk.Entry.new()
@@ -639,7 +640,9 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.listbox = Gtk.ListBox()
         self.listbox.set_hexpand(True)
         self.listbox.set_vexpand(True)
-        self.listbox.set_selection_mode(Gtk.SelectionMode.BROWSE )
+        self.listbox.set_show_separators(True)
+        self.listbox.set_activate_on_single_click(True)
+        self.listbox.set_selection_mode(Gtk.SelectionMode.NONE )
         self.vbox.append(self.sw)
         self.sw.set_child(self.listbox)
         
@@ -684,6 +687,14 @@ class FBDownloader(Gtk.ApplicationWindow):
                     url,
                     download=False
                 )
+
+            if "formats" not in result__.keys():
+                GLib.idle_add(self.infobar.label.set_label ,_("Playlist not supported"))
+                GLib.idle_add(self.infobar.show__)
+                GLib.idle_add(self.__spinner.stop)
+                GLib.idle_add(self.__spinner.hide)
+                GLib.idle_add(self.info_button.set_sensitive,True)
+                return
             for i in result__["formats"]:
                 if "format_note" in i.keys():
                     if i['format_note'] == 'tiny' :
@@ -717,7 +728,9 @@ class FBDownloader(Gtk.ApplicationWindow):
             GLib.idle_add(self.infobar.show__)
             GLib.idle_add(self.__spinner.stop)
             GLib.idle_add(self.__spinner.hide)
-            return 
+            return
+
+
         GLib.idle_add(self.emit,"ongetlinksdone",url)
 
         
@@ -725,6 +738,8 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.__spinner.show()
         self.__spinner.start()
         self.__spinner.queue_draw()
+        while   GLib.MainContext.default().pending():
+             GLib.MainContext.default().iteration()
         t = threading.Thread(target=self.get_links,args=(url,))
         t.setDaemon(True)
         t.start()
@@ -765,7 +780,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         v.set_margin_end(5)
         h   = Gtk.Box.new(Gtk.Orientation.HORIZONTAL,5)
         row.set_child(v)
-        self.listbox.append(row)
+        self.listbox.insert(row,0)
         label = Gtk.Label()
         label.set_margin_top(5)
         label.set_margin_bottom(5)
@@ -801,16 +816,13 @@ class FBDownloader(Gtk.ApplicationWindow):
         #    url_ = url_.split("?")[0]
         #file__ = Gio.File.new_for_uri(url_)
         #file__.read_async(1,None,self.on_load_image_finish,ggg)
-        #media_s = Gtk.MediaStream()
         ggg = Gtk.Video.new_for_file(Gio.file_new_for_uri(result[-1][4]))
         media_s = ggg.get_media_stream()
-        #media_s.
         ggg.set_size_request(150,150)
         ggg.set_hexpand(True)
         ggg.set_vexpand(True)
         #ggg.set_halign(Gtk.Align.CENTER)
         self.__all_video.setdefault(result[-1][4] , media_s)
-
         
         if not win:
             v1.append(ggg)
