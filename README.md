@@ -19,17 +19,17 @@ gstreamer1-plugins-good-gtk
 
 # Screenshot
 
-![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/master/Screenshot1.png "Screenshot")
+![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/gtk_libadwaita/Screenshot1.png "Screenshot")
 
-![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/master/Screenshot2.png "Screenshot")
+![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/gtk_libadwaita/Screenshot2.png "Screenshot")
 
-![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/master/Screenshot3.png "Screenshot")
+![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/gtk_libadwaita/Screenshot3.png "Screenshot")
 
-![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/master/Screenshot4.png "Screenshot")
+![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/gtk_libadwaita/Screenshot4.png "Screenshot")
 
-![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/master/Screenshot5.png "Screenshot")
+![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/gtk_libadwaita/Screenshot5.png "Screenshot")
 
-![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/master/Screenshot6.png "Screenshot")
+![Alt text](https://raw.githubusercontent.com/yucefsourani/pysavetube/gtk_libadwaita/Screenshot6.png "Screenshot")
 
 
 
