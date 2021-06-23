@@ -24,18 +24,15 @@
 #support playlist 
 #surport password user and native downloder
 import gi
-gi.require_version('Gtk', '3.0')
-gi.require_version('Gst', '1.0')
-from gi.repository import Gtk, Gdk, Gio, GLib, Gst, GObject, Pango, GdkPixbuf
-gi.require_version('Handy', '1')
-from gi.repository import Handy
+gi.require_version('Gtk', '4.0')
+from gi.repository import Gtk, Gdk, Gio, GLib, GObject, Pango#, GdkPixbuf
+gi.require_version('Adw', '1')
+from gi.repository import Adw
 import sys
 import threading
 import urllib.request as request
-import re
 import os
 import sys
-import subprocess
 import gettext
 import json
 import importlib
@@ -132,8 +129,7 @@ if win:
         os.environ['LANG'] = lang
 
 fix_certifi()
-Gst.init(None)
-Gst.init_check(None)
+
 
 gettext.install('pysavetube', localedir=get_correct_path('locale'))
 
@@ -178,7 +174,7 @@ def change_metadata_info(data):
         print(e)
         return False
     return result
-Handy.init()
+Adw.init()
 
 NETWORKTR    = "network-transmit-receive-symbolic"
 NETWORKERROR = "network-error-symbolic"
@@ -205,102 +201,6 @@ css = b"""
             padding-top: 6px;
         }
         """
-
-class GstWidget(Gtk.EventBox):
-    def __init__(self, link,parent):
-        super().__init__()
-        self.link = link
-        self.parent= parent
-        self.set_size_request(280, 200)
-
-        
-        self.overlay = Gtk.Overlay()
-        self.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK  | Gdk.EventMask.LEAVE_NOTIFY_MASK  )
-        self.add(self.overlay)
-        self.connect("leave-notify-event",self.on_leave)
-        self.connect("enter-notify-event",self.on_enter)
-        
-        pix1 = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(get_correct_path("pysavetube-data/images"),"play.png"),32,32,True)
-        self.playi = Gtk.Image.new_from_pixbuf(pix1 )
-        self.play  = Gtk.EventBox()
-        self.play.add(self.playi)
-        self.play .set_halign(Gtk.Align.CENTER)
-        self.play .set_valign(Gtk.Align.CENTER)
-        self.play.add_events(Gdk.EventMask.BUTTON_PRESS_MASK )
-        self.play.connect("button-press-event",self.on_play)
-
-        pix2 = GdkPixbuf.Pixbuf.new_from_file_at_scale(os.path.join(get_correct_path("pysavetube-data/images"),"stop.svg"),32,32,True)
-        self.stopi = Gtk.Image.new_from_pixbuf(pix2)
-        self.stop  = Gtk.EventBox()
-        self.stop.add(self.stopi)
-        self.stop .set_halign(Gtk.Align.CENTER)
-        self.stop .set_valign(Gtk.Align.CENTER)
-        self.stop.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
-        self.stop.connect("button-press-event",self.on_stop)
-        
-        self.activate_image = self.play 
-        
-        self.connect('realize', self.on_realize)
-        
-    def on_play(self,image,event):
-        playerState = self.playbin.get_state(Gst.SECOND).state
-        if playerState !=  Gst.State.PLAYING:
-            self.playbin.set_state(Gst.State.PLAYING)
-            self.activate_image  = self.stop
-            self.overlay.add_overlay(self.stop)
-            self.stop.show_all()
-            
-    def on_stop(self,image,event):
-        playerState = self.playbin.get_state(Gst.SECOND).state
-        if playerState != Gst.State.PAUSED:
-            self.playbin.set_state(Gst.State.PAUSED)
-            self.activate_image  = self.play
-            self.overlay.add_overlay(self.play)
-            self.play.show_all()
-
-    def on_leave(self,box,event):
-        self.overlay.remove(self.activate_image)
-        self.play.hide()
-        self.stop.hide()
-        
-    def on_enter(self,box,event):
-        playerState = self.playbin.get_state(Gst.SECOND).state
-        if playerState <= Gst.State.PAUSED:
-            self.activate_image  = self.play
-            self.overlay.add_overlay(self.play)
-            self.play.show_all()
-        elif playerState is Gst.State.PLAYING:
-            self.activate_image  = self.stop
-            self.overlay.add_overlay(self.stop)
-            self.stop.show_all()
-                   
-    def on_realize(self, widget):
-        gtksink   = Gst.ElementFactory.make('gtksink')
-        self.overlay.add(gtksink.props.widget)
-        gtksink.props.widget.show()
-
-        
-        self.playbin   = Gst.ElementFactory.make("playbin")
-        self.playbin.set_property('uri', self.link)
-        self.playbin.set_property('force-aspect-ratio', True)
-        self.playbin.set_property('video-sink',gtksink)
-
-        self.__bus1 = self.playbin.get_bus()
-        self.__bus1.add_signal_watch()
-        self.__bus1.connect("message", self.__on_message)
-
-    def __on_message(self, bus, message):
-        t = message.type
-        if t == Gst.MessageType.EOS:
-            self.playbin.set_state(Gst.State.NULL)
-            self.activate_image  = self.play
-            self.overlay.add_overlay(self.play)
-            self.play.show_all()
-        elif t == Gst.MessageType.ERROR:
-            self.playbin.set_state(Gst.State.NULL)
-            self.activate_image  = self.play
-            self.overlay.add_overlay(self.play)
-            self.play.show_all()
 
             
 class DownloadFile(GObject.Object,threading.Thread):
@@ -423,26 +323,25 @@ class MInfoBarB():
         self.send_button  = True
 
         
-        self.mainhbox = Gtk.HBox()
-        self.mainhbox.props.spacing = 10
-        
+        self.mainhbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL,10)
+
         self.infobar = Gtk.InfoBar()
         self.infobar.set_show_close_button(True)
         self.infobar.connect("response", self.hide__)
         
         self.label = Gtk.Label()
         self.label.props.label = ""
-        self.content = self.infobar.get_content_area()
         self.b = Gtk.Button()
         self.b.props.label = ""
         self.b.connect("clicked",self.on_b_clicked)
-        self.mainhbox.pack_start(self.label,False,False,0)
-        self.mainhbox.pack_start(self.b,False,False,0)
-        self.content.add(self.mainhbox )
+        self.mainhbox.append(self.label)
+        self.mainhbox.append(self.b)
+        self.infobar.add_child(self.mainhbox )
         self.infobar.set_message_type(self.message_type)
-        self.infobar.props.no_show_all = True
+        #self.infobar.props.no_show_all = True
         
-        self.parent.add(self.infobar)
+        self.parent.append(self.infobar)
+        self.hide__()
 
     def on_b_clicked(self,button):
         if self.send_button:
@@ -452,10 +351,11 @@ class MInfoBarB():
         self.infobar.hide()
         
     def show__(self):
-        self.content.show_all()
+        self.infobar.set_revealed(True)
         self.infobar.show()
 
     def hide__(self, infobar=None, respose_id=None):
+        self.infobar.set_revealed(False)
         self.infobar.hide()
         
 class MInfoBar():
@@ -464,8 +364,8 @@ class MInfoBar():
         self.msg = msg
         self.message_type = message_type
         
-        self.mainvbox = Gtk.VBox()
-        self.mainvbox.props.spacing = 10
+        self.mainvbox = Gtk.Box.new(Gtk.Orientation.VERTICAL,1)
+
         
         self.infobar = Gtk.InfoBar()
         self.infobar.set_show_close_button(True)
@@ -473,19 +373,20 @@ class MInfoBar():
         
         self.label = Gtk.Label()
         self.label.props.label = self.msg
-        self.content = self.infobar.get_content_area()
-        self.mainvbox.pack_start(self.label,False,False,0)
-        self.content.add(self.mainvbox )
+        self.mainvbox.append(self.label)
+        self.infobar.add_child(self.mainvbox )
         self.infobar.set_message_type(self.message_type)
-        self.infobar.props.no_show_all = True
+        #self.infobar.props.no_show_all = True
         
-        self.parent.add(self.infobar)
+        self.parent.append(self.infobar)
+        self.hide__()
         
     def show__(self):
-        self.content.show_all()
+        self.infobar.set_revealed(True)
         self.infobar.show()
 
     def hide__(self, infobar=None, respose_id=None):
+        self.infobar.set_revealed(False)
         self.infobar.hide()
         
         
@@ -497,33 +398,36 @@ class FBDownloader(Gtk.ApplicationWindow):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if icon_:
-            self.set_icon(GdkPixbuf.Pixbuf.new_from_file(icon_))
         self.set_title("PySaveTube")
         style_provider = Gtk.CssProvider()
         style_provider.load_from_data(css)
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), style_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), style_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
         self.all_video_info = {}
         self.config__ = get_metadata_info()
         
         self.__spinner = Gtk.Spinner()
-        self.__spinner.props.no_show_all = True
+        self.__spinner.props.margin_top = 5
+        self.__spinner.props.margin_bottom = 5
+
         
-        headerbar = Handy.HeaderBar()
-        headerbar.set_show_close_button(True)
+        headerbar = Adw.HeaderBar()
+        headerbar.set_decoration_layout("close")
+        #headerbar.set_show_close_button(True)
         self.set_titlebar(headerbar)
         
-        mainvbox = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
-        self.vbox     = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
-        self.vbox.props.margin = 18
-        self.vbox.props.spacing = 18
-        self.vbox2      = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
+        mainvbox   = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
+        mainvbox.set_hexpand(True)
+        mainvbox.set_vexpand(True)
+        self.vbox  = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
+        self.vbox.set_hexpand(True)
+        self.vbox.set_vexpand(True)
+        self.vbox2 = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
         self.vbox3 = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
 
         networkmanager     = Gio.NetworkMonitor.get_default()
         self.networkstatus = networkmanager.get_connectivity()
-        self.statuspage    = Handy.StatusPage.new()
+        self.statuspage    = Adw.StatusPage.new()
         
 
         
@@ -538,33 +442,38 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.stack1.add_titled(self.vbox3,"vbox3","Network Status")
         self.stack1.connect("notify::visible-child",self.on_visible_child_changed)
 
-        self.stack1.child_set_property(self.vbox, 'icon-name', 'open-menu-symbolic')
-        self.stack1.child_set_property(self.vbox2, 'icon-name', 'software-update-available-symbolic')
-        self.stack1.child_set_property(self.vbox3, 'icon-name', 'network-wireless-signal-excellent-symbolic')
+        self.stack1.get_page(self.vbox).set_icon_name("open-menu-symbolic")
+        self.stack1.get_page(self.vbox2).set_icon_name("software-update-available-symbolic")
+        self.stack1.get_page(self.vbox3).set_icon_name("network-wireless-signal-excellent-symbolic")
+
 
         
-        view_switcher_title = Handy.ViewSwitcherTitle.new()
+        view_switcher_title = Adw.ViewSwitcherTitle.new()
         view_switcher_title.set_stack(self.stack1)
-        view_switcher_title.set_policy(Handy.ViewSwitcherPolicy.WIDE)
-        headerbar.set_custom_title(view_switcher_title)
+        view_switcher_title.set_policy(Adw.ViewSwitcherPolicy.WIDE)
+        headerbar.set_title_widget(view_switcher_title)
         
-        view_switcher_bar = Handy.ViewSwitcherBar.new()
+        view_switcher_bar = Adw.ViewSwitcherBar.new()
         view_switcher_bar.set_stack(self.stack1)
 
-        link_hbox = Gtk.HBox()
-        link_hbox.props.spacing = 5
-        link_hbox.props.margin  = 5
+        link_hbox = Gtk.Box.new(Gtk.Orientation.HORIZONTAL,5)
+        link_hbox.props.margin_top = 5
+        link_hbox.props.margin_bottom = 5
+        link_hbox.props.margin_start = 5
+        link_hbox.props.margin_end = 5
+
+
         
         link_label = Gtk.Label()
         link_label.props.label = _("Url")
         link_label.get_style_context().add_class("h1")
         
-        self.pastebutton = Gtk.Button.new_from_icon_name("edit-paste-symbolic", Gtk.IconSize.MENU)
-        self.pastebutton.props.tooltip_text = "Paste URL"
+        self.pastebutton =  Gtk.Button.new_from_icon_name("edit-paste-symbolic")
         self.pastebutton.connect("clicked",self.on_paste_button_clicked)
         headerbar.pack_start(self.pastebutton)
         
         self.link_entry = Gtk.Entry()
+        self.link_entry.set_hexpand(True)
         self.link_entry.props.placeholder_text = _("Enter  Video Url...")
         self.link_entry.set_input_purpose(Gtk.InputPurpose.URL)
         self.link_entry.set_has_frame(True)
@@ -576,17 +485,19 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.info_button.connect("clicked",self.on_info_button_clicked)
 
         
-        link_hbox.pack_start(link_label,False,False,0)
-        link_hbox.pack_start(self.link_entry,True,True,0)
-        link_hbox.pack_start(self.info_button,False,False,0)
+        link_hbox.append(link_label)
+        link_hbox.append(self.link_entry)
+        link_hbox.append(self.info_button)
         
         
         self.infobar = MInfoBar(self.vbox,"",Gtk.MessageType.INFO)
         self.infobar2 = MInfoBarB(self.vbox,Gtk.MessageType.INFO)
-        self.vbox.pack_start(self.__spinner,False,False,5)
-        self.vbox.pack_start(link_hbox,False,False,0)
+        self.vbox.append(self.__spinner)
+        self.vbox.append(link_hbox)
         
         self.statuspage.set_title(_("Network Status"))
+        self.statuspage.set_hexpand(True)
+        self.statuspage.set_vexpand(True)
         if self.networkstatus == Gio.NetworkConnectivity.FULL:
             self.statuspage.set_icon_name(NETWORKTR)
             self.statuspage.set_description(_("Network Connected."))
@@ -595,19 +506,22 @@ class FBDownloader(Gtk.ApplicationWindow):
             self.statuspage.set_description(_("Network Error."))
             self.infobar.label.props.label = _("Network Error.")
             self.infobar.show__()
-        self.vbox3.add(self.statuspage)
+        self.vbox3.append(self.statuspage)
         networkmanager.connect("network-changed",self.on_network_changed)
         
         self.installspinner = Gtk.Spinner()
-        self.installspinner.props.no_show_all = True
+        self.installspinner.props.margin_bottom = 5
+        #self.installspinner.props.no_show_all = True
         self.check_youtube_dl_update_button = Gtk.Button()
         self.check_youtube_dl_update_button.props.label = _("Update Youtube-dl")
         self.connect("version",self.on_youtube_dl_version_check_done)
         self.check_youtube_dl_update_button.connect("clicked",self.t_check_if_youtube_dl_need_update)
-        self.statuspage2  = Handy.StatusPage.new()
+        self.statuspage2  = Adw.StatusPage.new()
+        self.statuspage2.set_hexpand(True)
+        self.statuspage2.set_vexpand(True)
         self.check_for_update_infobar  = MInfoBar(self.vbox2,"",Gtk.MessageType.INFO)
-        self.vbox2.pack_start(self.statuspage2,True,True,0)
-        self.vbox2.pack_start(self.installspinner,False,False,0)
+        self.vbox2.append(self.statuspage2)
+        self.vbox2.append(self.installspinner)
         self.statuspage2.set_title(_("Youtube-dl Status"))
         self.__isinstall = True
         self.installbutton = Gtk.Button()
@@ -616,23 +530,26 @@ class FBDownloader(Gtk.ApplicationWindow):
         if  not youtub_dl_exists:
             self.statuspage2.set_icon_name("face-sad-symbolic")
             self.statuspage2.set_description(_("Youtube-dl not found"))
-            self.vbox2.show_all()
             self.stack1.set_visible_child(self.vbox2)
-            self.stack1.child_set_property(self.vbox2, 'needs-attention', True)
+            self.stack1.get_page(self.vbox2).set_needs_attention(True) 
             self.vbox.set_sensitive(False)
-            self.vbox2.pack_start(self.installbutton,False,False,0)
+            self.vbox2.append(self.installbutton)
         else:
             self.statuspage2.set_icon_name("face-cool-symbolic")
             self.statuspage2.set_description(_("Version : ")+youtube_dl.version.__version__)
-            self.vbox2.pack_start(self.check_youtube_dl_update_button,False,False,0)
+            self.vbox2.append(self.check_youtube_dl_update_button)
 
-        flap = Handy.Flap.new()
+        flap = Adw.Flap.new()
         flap.set_content(self.stack1)
         flap.set_separator(Gtk.Separator())
         
-        avavat_vbox = Gtk.VBox()
+        avavat_vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL,1)
+        avavat_vbox.props.margin_top = 5
+        avavat_vbox.props.margin_bottom = 5
+        avavat_vbox.props.margin_start = 5
+        avavat_vbox.props.margin_end = 5
         avavat_vbox.set_hexpand(False)
-        avatar = Handy.Avatar()
+        avatar = Adw.Avatar()
         avatar.set_show_initials(True)
         avatar.set_size(150)
         avatar.set_text("About")
@@ -653,7 +570,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         
         listbox = Gtk.ListBox.new()
         
-        action_row = Handy.ExpanderRow.new()
+        action_row = Adw.ExpanderRow.new()
         action_row.set_title(_("Login"))
         self.name_entry = Gtk.Entry.new()
         self.name_entry.props.placeholder_text = _("Username")
@@ -679,7 +596,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         switch_label.props.label     = _("Use Password")
         use_password_switch_grid     = Gtk.Grid()
         self.use_password_switch     = Gtk.Switch()
-        use_password_switch_grid.add(self.use_password_switch)
+        use_password_switch_grid.attach(self.use_password_switch,1,1,1,1)
         
         action_row.add(self.name_entry)
         action_row.add(self.password_entry)
@@ -689,7 +606,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         #listbox.add(action_row) # for later
         
         
-        action_row2 = Handy.ExpanderRow.new()
+        action_row2 = Adw.ExpanderRow.new()
         action_row2.set_title(_("Timeout"))
         global timeout_
         timeout_ = self.config__["timeout"]
@@ -699,32 +616,37 @@ class FBDownloader(Gtk.ApplicationWindow):
         spinbutton.props.adjustment = ad
         spinbutton.connect("value_changed",self.on_spinbutton_changed)
         spin_grid = Gtk.Grid()
-        spin_grid.add(spinbutton)
+        spin_grid.attach(spinbutton,1,1,1,1)
         action_row2.add(spin_grid)
-        listbox.add(action_row2)
+        listbox.append(action_row2)
         
-        avavat_vbox.pack_start(avatar,False,False,10)
-        avavat_vbox.pack_start(label_avatar1,False,False,10)
-        avavat_vbox.pack_start(label_avatar2,False,False,10)
-        avavat_vbox.pack_start(linkbutton_avatar2,False,False,10)
-        avavat_vbox.pack_start(listbox,False,False,0)
+        avavat_vbox.append(avatar)
+        avavat_vbox.append(label_avatar1)
+        avavat_vbox.append(label_avatar2)
+        avavat_vbox.append(linkbutton_avatar2)
+        avavat_vbox.append(listbox)
         flap.set_flap(avavat_vbox)
+        flap.set_hexpand(True)
+        flap.set_vexpand(True)
 
         view_switcher_title.connect("notify::title-visible",self.on_headerbar_squeezer_notify,view_switcher_bar)
         
         
         self.sw = Gtk.ScrolledWindow()
+        self.sw.set_hexpand(True)
+        self.sw.set_vexpand(True)
         self.listbox = Gtk.ListBox()
+        self.listbox.set_hexpand(True)
+        self.listbox.set_vexpand(True)
         self.listbox.set_selection_mode(Gtk.SelectionMode.BROWSE )
-        self.vbox.pack_start(self.sw,True,True,0)
-        self.sw.add(self.listbox)
+        self.vbox.append(self.sw)
+        self.sw.set_child(self.listbox)
         
-        mainvbox.add(flap)
-        mainvbox.add(view_switcher_bar)
-        self.add(mainvbox)
+        mainvbox.append(flap)
+        mainvbox.append(view_switcher_bar)
+        self.set_child(mainvbox)
         
-    
-        self.show_all()
+
         self.connect("ongetlinksdone",self.on_get_links_done)
 
         for i in self.config__["current_links"]:
@@ -740,7 +662,7 @@ class FBDownloader(Gtk.ApplicationWindow):
                 entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY ,"user-not-tracked-symbolic")
         
     def on_visible_child_changed(self,stack,para):
-        stack.child_set_property(stack.props.visible_child, 'needs-attention', False)
+        stack.get_page(stack.props.visible_child).set_needs_attention(False) 
         
     def get_links(self,url):
         result = ""
@@ -802,8 +724,6 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.__spinner.show()
         self.__spinner.start()
         self.__spinner.queue_draw()
-        while Gtk.events_pending():
-            Gtk.main_iteration()
         t = threading.Thread(target=self.get_links,args=(url,))
         t.setDaemon(True)
         t.start()
@@ -833,17 +753,18 @@ class FBDownloader(Gtk.ApplicationWindow):
         if not result:
             return
         row = Gtk.ListBoxRow()
-        v   = Gtk.VBox()
-        v.props.spacing = 5
-        v.set_margin_bottom(30)
-        h   = Gtk.HBox()
-        h.set_margin_start(5)
-        h.set_margin_end(5)
-        h.set_margin_top(5)
-        h.set_margin_bottom(5)
-        h.props.spacing = 5
-        row.add(v)
-        self.listbox.add(row)
+        row.props.margin_top = 5
+        row.props.margin_bottom = 5
+        row.props.margin_start = 5
+        row.props.margin_end = 5
+        v   = Gtk.Box.new(Gtk.Orientation.VERTICAL,5)
+        v.set_margin_top(5)
+        v.set_margin_bottom(5)
+        v.set_margin_start(5)
+        v.set_margin_end(5)
+        h   = Gtk.Box.new(Gtk.Orientation.HORIZONTAL,5)
+        row.set_child(v)
+        self.listbox.append(row)
         label = Gtk.Label()
         label.set_margin_top(5)
         label.set_margin_bottom(5)
@@ -851,35 +772,48 @@ class FBDownloader(Gtk.ApplicationWindow):
         label.set_selectable(True)
         label.props.label = result[-1][10]+"\n\n"+result[-1][1]
         label.props.ellipsize = Pango.EllipsizeMode.END
-        v.pack_start(label,False,False,0)
-        v.pack_start(h,False,False,0)
+        v.append(label)
+        v.append(h)
         progb = Gtk.ProgressBar()
+        progb.set_hexpand(True)
+        progb.set_vexpand(True)
+        #progb.set_halign(Gtk.Align.CENTER)
         progb.set_show_text(True)
         progb.set_margin_bottom(10)
-        progbhb = Gtk.HBox()
-        progbhb.pack_start(progb,True,False,0)
-        v.pack_start(progbhb,False,False,0)
-        h2 = Gtk.HBox()
-        v.pack_start(h2,True,True,0)
-        v1 = Gtk.VBox()
-        v2 = Gtk.VBox()
-        v3 = Gtk.VBox()
-        h2.pack_start(v2,True,False,0)
-        h2.pack_start(v3,True,False,0)
+        progbhb = Gtk.Box.new(Gtk.Orientation.HORIZONTAL,5)
+        progbhb.append(progb)
+        v.append(progbhb)
+        h2 = Gtk.Box.new(Gtk.Orientation.HORIZONTAL,10)
+        h2.set_hexpand(True)
+        h2.set_vexpand(True)
+        h2.set_halign(Gtk.Align.CENTER)
+        v.append(h2)
+        v1 = Gtk.Box.new(Gtk.Orientation.VERTICAL,5)
+        v2 = Gtk.Box.new(Gtk.Orientation.VERTICAL,5)
+        v3 = Gtk.Box.new(Gtk.Orientation.VERTICAL,5)
+        h2.append(v2)
+        h2.append(v3)
         #ggg = GstWidget(result[-1][4],self)
-        ggg = Gtk.Image()
-        url_ = result[-1][3]
-        if "ytimg" in url_:
-            url_ = url_.split("?")[0]
-        file__ = Gio.File.new_for_uri(url_)
-        file__.read_async(1,None,self.on_load_image_finish,ggg)
+        #ggg = Gtk.Image()
+        #url_ = result[-1][3]
+        #if "ytimg" in url_:
+        #    url_ = url_.split("?")[0]
+        #file__ = Gio.File.new_for_uri(url_)
+        #file__.read_async(1,None,self.on_load_image_finish,ggg)
+        ggg = Gtk.Video.new_for_file(Gio.file_new_for_uri(result[-1][4]))
+        ggg.set_size_request(150,150)
+        ggg.set_hexpand(True)
+        ggg.set_vexpand(True)
+        #ggg.set_halign(Gtk.Align.CENTER)
 
         
         if not win:
-            v1.pack_start(ggg,False,False,0)
+            v1.append(ggg)
         store = Gtk.ListStore(str,str,str,str,str,int,int,str,str,str,str)
         for i in result:
-            store.append(i)
+            iterr = store.append()
+            for k in range(0,len(i)):
+                store.set(iterr,k,i[k])
 
         combo = Gtk.ComboBox.new_with_model(store)
         renderer_text = Gtk.CellRendererText()
@@ -888,7 +822,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         combo.pack_start(renderer_text, True)
         combo.add_attribute(renderer_text, "text", 9)
         combo.set_active(len(store)-1)
-        combo.show_all()
+
         
         close_button = Gtk.Button()
         close_button.props.label = _("Remove Task")
@@ -897,19 +831,18 @@ class FBDownloader(Gtk.ApplicationWindow):
         cancel_button = Gtk.Button()
         cancel_button.props.label = _("Cancel")
         cancel_button.set_sensitive(False)
-        v2.pack_start(combo,True,False,0)
-        v2.pack_start(close_button,True,False,0)
-        v3.pack_start(button,True,False,0)
-        v3.pack_start(cancel_button,True,False,0)
+        v2.append(combo)
+        v2.append(close_button)
+        v3.append(button)
+        v3.append(cancel_button)
         if not win:
-            h.pack_start(v1,True,False,0)
+            h.append(v1)
 
         button.connect("clicked",self.on_download,progb,store,combo,cancel_button,close_button)
         close_button.connect("clicked",self.on_close,row,result)
-        self.show_all()
         progb.hide()
         
-    def on_close(self,button,row,result,force=False): 
+    def on_close(self,button,row,result,force=False):
         if not force:
             self.infobar2.label.props.label = _("Are You Sure\nYou Want To Remove This Task?")
             self.infobar2.send_button = True
@@ -920,7 +853,6 @@ class FBDownloader(Gtk.ApplicationWindow):
             self.infobar2.show__()
             return
         self.listbox.remove(row)
-        row.destroy()
         self.config__["current_links"].remove(result)
         change_metadata_info(self.config__)
 
@@ -962,7 +894,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         button.set_sensitive(False)
         self.get_links_t(url)
         
-    def on_entry_icon_press(self,entry, icon_pos, event):
+    def on_entry_icon_press(self,entry, icon_pos):
         entry.set_text("")
         
     def on_network_changed(self,networkmanager, network_available):
@@ -978,15 +910,21 @@ class FBDownloader(Gtk.ApplicationWindow):
             self.networkstatus = networkstatus
             self.infobar.label.props.label = _("Network Error.")
             self.infobar.show__()
-        self.stack1.child_set_property(self.vbox3, 'needs-attention', True) 
+        self.stack1.get_page(self.vbox3).set_needs_attention(True) 
             
-           
-        
-    def on_paste_button_clicked(self,button):
-        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD  )
-        text = clipboard.wait_for_text()
-        if text:
+
+    def on_clipboard_read_text(self,clipboard,result,data):
+        text = ""
+        try:
+            text = clipboard.read_text_finish(result)
+        except:
+            pass
+        if text :
             self.link_entry.set_text(text)
+            
+    def on_paste_button_clicked(self,button):
+        clipboard = self.get_clipboard()
+        clipboard.read_text_async(None,self.on_clipboard_read_text,None)
             
     def on_spinbutton_changed(self,spinbutton):
         global timeout_
@@ -1055,19 +993,22 @@ class FBDownloader(Gtk.ApplicationWindow):
             except:
                 pass
         GLib.idle_add(self.statuspage2.set_icon_name,"face-cool-symbolic")
-        GLib.idle_add(self.statuspage2.set_description,(_("Version : ")+youtube_dl.version.__version__))
         GLib.idle_add(self.installspinner.stop)
         GLib.idle_add(self.installspinner.hide)
         if self.__isinstall:
+            GLib.idle_add(self.statuspage2.set_description,(_("Version : ")+youtube_dl.version.__version__))
             GLib.idle_add(self.vbox2.remove,self.installbutton)
-            GLib.idle_add(self.vbox2.pack_start,self.check_youtube_dl_update_button,False,False,0)
+            GLib.idle_add(self.vbox2.append,self.check_youtube_dl_update_button)
             GLib.idle_add(self.vbox.set_sensitive,True)
+            GLib.idle_add(self.check_youtube_dl_update_button.set_sensitive,True)
+        else:
+            GLib.idle_add(self.statuspage2.set_description,(_("New Version : ")+last_version))
+            self.check_for_update_infobar.label.props.label = "Please Restart Pysavetube"
+            GLib.idle_add(self.check_for_update_infobar.show__)
 
         self.__isinstall = True
-        GLib.idle_add(self.check_youtube_dl_update_button.set_sensitive,True)
         GLib.idle_add(self.installbutton.set_sensitive,True)
-        GLib.idle_add(self.show_all)
-        GLib.idle_add(self.infobar.hide__)
+        #GLib.idle_add(self.infobar.hide__)
         
     def on_youtube_dl_version_check_done(self,parent,result,remote_version,local_version):
         if result == "e":
@@ -1137,7 +1078,7 @@ class Application(Gtk.Application):
     def do_activate(self):
         if not self.window:
             self.window = FBDownloader(application=self, title=appwindowtitle)
-            self.window.connect("delete-event",self.on_quit)
+            self.window.connect("close_request",self.on_quit)
         self.window.present()
 
     def on_quit(self, action=None, param=None,force=False,b=None):
