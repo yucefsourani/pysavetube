@@ -6,15 +6,9 @@ Python Program To Download Videos.
 
 # Requires 
 
-libhandy
+libadwaita
 
-
-# Requires ( for video  )  # Video playback is Disabled at the moment  
-gstreamer1
-
-gstreamer1-plugins-good
-
-gstreamer1-plugins-good-gtk
+Gtk4
 
 
 # Screenshot
