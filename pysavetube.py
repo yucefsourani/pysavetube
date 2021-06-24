@@ -565,7 +565,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         label_avatar2.props.ellipsize = Pango.EllipsizeMode.END
         label_avatar2.set_justify(Gtk.Justification.CENTER)
         label_avatar2.get_style_context().add_class("h2")
-        label_avatar2.props.label = "V 1.0\nLicense : GPLv3"
+        label_avatar2.props.label = "V 2.0\nLicense : GPLv3"
         
         linkbutton_avatar2 = Gtk.LinkButton.new_with_label("https://github.com/yucefsourani/pysavetube","WebSite")
         
