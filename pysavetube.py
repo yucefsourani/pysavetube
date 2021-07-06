@@ -1042,9 +1042,9 @@ class FBDownloader(Gtk.ApplicationWindow):
             msg = _('youtube-dl need update to:')+'\n' + remote_version
             self.__isinstall = False
             GLib.idle_add(self.statuspage2.set_icon_name,"face-surprise-symbolic")
-            self.installbutton.emit("clicked")
+            GLib.idle_add(self.installbutton.emit,"clicked")
             
-        self.check_for_update_infobar.label.props.label = msg
+        GLib.idle_add(self.check_for_update_infobar.label.set_label ,msg)
         GLib.idle_add(self.check_for_update_infobar.show__)
         
         
