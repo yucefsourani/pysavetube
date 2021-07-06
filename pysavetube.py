@@ -1023,7 +1023,7 @@ class FBDownloader(Gtk.ApplicationWindow):
             GLib.idle_add(self.check_youtube_dl_update_button.set_sensitive,True)
         else:
             GLib.idle_add(self.statuspage2.set_description,(_("New Version : ")+last_version))
-            self.check_for_update_infobar.label.props.label = "Please Restart Pysavetube"
+            GLib.idle_add(self.check_for_update_infobar.label.set_label ,"Please Restart Pysavetube")
             GLib.idle_add(self.check_for_update_infobar.show__)
 
         self.__isinstall = True
