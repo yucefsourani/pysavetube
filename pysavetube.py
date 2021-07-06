@@ -121,7 +121,8 @@ def get_correct_path(relative_path):
 default_metadata = """{{"current_links"           : [],"current_save_location"   : "{}","timeout" : 10}}
 """.format(GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS))
 
-win = sys.platform.startswith('win')
+win =  sys.platform.startswith('win')
+skipnetworkstatus =  False
 if win:
     os.environ['GDK_WIN32_LAYERED'] = "0"
     default_metadata = """{{"current_links"           : [],"current_save_location"   : "{}","timeout" : 10}}
@@ -412,6 +413,108 @@ class DownloadFile(GObject.Object,threading.Thread):
         GLib.idle_add(self.close_button.set_sensitive,True)
         GLib.idle_add(self.cancel_button.set_sensitive,False)
 
+class DownloadFile(GObject.Object,threading.Thread):
+    __gsignals__ = { "break"     : (GObject.SignalFlags.RUN_LAST, None, ())
+    }
+    
+    def __init__(self,parent,progressbar,button,link,location,format_,username=None,
+                 password=None,videopassword=None,playlist=None,outtmpl="%(id)s.%(format)s.%(title)s.%(ext)s",
+                 cancel_button=None,close_button=None,
+                 ignoreerrors=False,nooverwrites=True,skip_download=True,continue_dl=True,subtitle=False):
+        GObject.Object.__init__(self)
+        threading.Thread.__init__(self)
+        self.parent        = parent
+        self.progressbar   = progressbar
+        self.button        = button
+        self.link          = link
+        self.format_       = format_
+        self.username      = username
+        self.password      = password 
+        self.videopassword = videopassword
+        self.playlist      = playlist
+        self.outtmpl       = outtmpl
+        self.location      = location
+        self.break_        = False
+        self.cancel_button = cancel_button
+        self.close_button  = close_button
+        self.ignoreerrors  = ignoreerrors
+        self.nooverwrites  = nooverwrites
+        self.skip_download = skip_download
+        self.continue_dl   = continue_dl
+        self.subtitle      = subtitle
+        self.connect("break",self.on_break)
+
+
+        
+
+    def on_break(self,s):
+        self.break_ = True        
+            
+    def run(self):
+        ydl_opts      = {}
+        self.break_ = False
+        GLib.idle_add(self.progressbar.show)
+        GLib.idle_add(self.button.set_sensitive,False)
+        GLib.idle_add(self.close_button.set_sensitive,False)
+        
+        
+        ydl_opts["format"]            = self.format_
+        if self.username:
+            ydl_opts["username"]          = self.username
+        if self.password:
+            ydl_opts["password"]          = self.password
+        if self.videopassword:
+            ydl_opts["videopassword"]     = self.videopassword
+            
+        if self.subtitle:
+            ydl_opts["subtitleslangs"]     = [self.subtitle.split("-")[0]]
+            ydl_opts["subtitlesformat"]    = self.subtitle.split("-")[1]
+            ydl_opts["writesubtitles"]     = True
+            ydl_opts["writeautomaticsub"]  = True
+            self.outtmpl = os.path.join(self.location,self.subtitle+"_"+self.outtmpl)
+        else:
+            self.outtmpl = os.path.join(self.location,self.outtmpl)
+            
+
+        ydl_opts["socket_timeout"]    = timeout_
+        ydl_opts["ignoreerrors"]      = self.ignoreerrors
+        ydl_opts["nooverwrites"]      = self.nooverwrites
+        ydl_opts["continue_dl"]       = self.continue_dl
+        ydl_opts["progress_hooks"]    = []
+        ydl_opts["progress_hooks"].append(self.my_hook)
+        ydl_opts["outtmpl"]           = self.outtmpl 
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([self.link])
+            
+    def my_hook(self,d):
+        status  = d["status"] 
+        if status == 'finished':
+            GLib.idle_add(self.progressbar.set_fraction,0.0)
+            GLib.idle_add(self.progressbar.set_text,_("Done"))
+            GLib.idle_add(self.button.set_sensitive,True)
+            GLib.idle_add(self.close_button.set_sensitive,True)
+            GLib.idle_add(self.cancel_button.set_sensitive,False)
+            return True
+        elif status == "error":
+            GLib.idle_add(self.progressbar.set_fraction,0.0)
+            GLib.idle_add(self.progressbar.set_text,_("Fail"))
+            GLib.idle_add(self.button.set_sensitive,True)
+            GLib.idle_add(self.close_button.set_sensitive,True)
+            GLib.idle_add(self.cancel_button.set_sensitive,False)
+            return True
+        _percent_str      = d["_percent_str"]
+        _speed_str        = d["_speed_str"]
+        _eta_str          = d["_eta_str"]
+        filename          = d["filename"]
+        tmpfilename       = d["tmpfilename"]
+        total_bytes       = d["total_bytes"]
+        downloaded_bytes  = d["downloaded_bytes"]
+        count = int((downloaded_bytes*100)//total_bytes)
+        fraction = count/100
+        GLib.idle_add(self.progressbar.set_fraction,fraction)
+        GLib.idle_add(self.progressbar.set_text,_percent_str+" "+str(downloaded_bytes)+"/"+str(total_bytes)+" B")
+
+
 
 class MInfoBarB():
     def __init__(self,parent,message_type,row=None,result=None,func=None):
@@ -521,9 +624,10 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.vbox2      = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
         self.vbox3 = Gtk.Box(orientation = Gtk.Orientation.VERTICAL)
 
-        networkmanager     = Gio.NetworkMonitor.get_default()
-        self.networkstatus = networkmanager.get_connectivity()
-        self.statuspage    = Handy.StatusPage.new()
+        if not win or skipnetworkstatus:
+            networkmanager     = Gio.NetworkMonitor.get_default()
+            self.networkstatus = networkmanager.get_connectivity()
+            self.statuspage    = Handy.StatusPage.new()
         
 
         
@@ -535,12 +639,14 @@ class FBDownloader(Gtk.ApplicationWindow):
         
         self.stack1.add_titled(self.vbox,"vbox","Main")
         self.stack1.add_titled(self.vbox2,"vbox2","Youtube-dl")
-        self.stack1.add_titled(self.vbox3,"vbox3","Network Status")
+        if not win or skipnetworkstatus:
+            self.stack1.add_titled(self.vbox3,"vbox3","Network Status")
         self.stack1.connect("notify::visible-child",self.on_visible_child_changed)
 
         self.stack1.child_set_property(self.vbox, 'icon-name', 'open-menu-symbolic')
         self.stack1.child_set_property(self.vbox2, 'icon-name', 'software-update-available-symbolic')
-        self.stack1.child_set_property(self.vbox3, 'icon-name', 'network-wireless-signal-excellent-symbolic')
+        if not win or skipnetworkstatus:
+            self.stack1.child_set_property(self.vbox3, 'icon-name', 'network-wireless-signal-excellent-symbolic')
 
         
         view_switcher_title = Handy.ViewSwitcherTitle.new()
@@ -586,17 +692,18 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.vbox.pack_start(self.__spinner,False,False,5)
         self.vbox.pack_start(link_hbox,False,False,0)
         
-        self.statuspage.set_title(_("Network Status"))
-        if self.networkstatus == Gio.NetworkConnectivity.FULL:
-            self.statuspage.set_icon_name(NETWORKTR)
-            self.statuspage.set_description(_("Network Connected."))
-        else:
-            self.statuspage.set_icon_name(NETWORKERROR)
-            self.statuspage.set_description(_("Network Error."))
-            self.infobar.label.props.label = _("Network Error.")
-            self.infobar.show__()
-        self.vbox3.add(self.statuspage)
-        networkmanager.connect("network-changed",self.on_network_changed)
+        if not win or skipnetworkstatus:
+            self.statuspage.set_title(_("Network Status"))
+            if self.networkstatus == Gio.NetworkConnectivity.FULL:
+                self.statuspage.set_icon_name(NETWORKTR)
+                self.statuspage.set_description(_("Network Connected."))
+            else:
+                self.statuspage.set_icon_name(NETWORKERROR)
+                self.statuspage.set_description(_("Network Error."))
+                self.infobar.label.props.label = _("Network Error.")
+                self.infobar.show__()
+            self.vbox3.add(self.statuspage)
+            networkmanager.connect("network-changed",self.on_network_changed)
         
         self.installspinner = Gtk.Spinner()
         self.installspinner.props.no_show_all = True
@@ -673,6 +780,14 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.password_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY ,"avatar-default-symbolic")
         self.password_entry.connect("icon_press",self.on_entry_show_hide_passoword_press)
 
+        self.video_pass_entry = Gtk.Entry.new()
+        self.video_pass_entry.props.placeholder_text = _("Video Password")
+        self.video_pass_entry.set_input_hints(Gtk.InputHints.NO_EMOJI | Gtk.InputHints.NO_SPELLCHECK )
+        self.video_pass_entry.set_input_purpose(Gtk.InputPurpose.PASSWORD  )
+        self.video_pass_entry.set_visibility(False)
+        self.video_pass_entry.set_has_frame(True)
+        self.video_pass_entry.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY ,"avatar-default-symbolic")
+        self.video_pass_entry.connect("icon_press",self.on_entry_show_hide_passoword_press)
         
         switch_label = Gtk.Label()
         switch_label.props.ellipsize = Pango.EllipsizeMode.END
@@ -683,10 +798,11 @@ class FBDownloader(Gtk.ApplicationWindow):
         
         action_row.add(self.name_entry)
         action_row.add(self.password_entry)
+        action_row.add(self.video_pass_entry)
         action_row.add(Gtk.Separator())
         action_row.add(switch_label)
         action_row.add(use_password_switch_grid)
-        #listbox.add(action_row) # for later
+        listbox.add(action_row) # for later
         
         
         action_row2 = Handy.ExpanderRow.new()
@@ -746,30 +862,45 @@ class FBDownloader(Gtk.ApplicationWindow):
         result = ""
         self.all_video_info.setdefault(url,[])
         try:
-            options = {"youtube_include_dash_manifest" : False}
+            options = {"youtube_include_dash_manifest" : False , "socket_timeout" : timeout_}
             if self.use_password_switch.get_active():
                 user_ = self.name_entry.get_text().strip()
                 pass_ = self.password_entry.get_text().strip()
+                video_pass = self.video_pass_entry.get_text().strip()
                 if user_ and pass_:
                     options["username"] = user_
                     options["password"] = pass_
-                elif pass_:
-                    options["videopassword"] = pass_ 
+                elif video_pass:
+                    options["videopassword"] = video_pass 
             ydl = youtube_dl.YoutubeDL(options)
             with ydl:
                 result__ = ydl.extract_info(
                     url,
                     download=False
                 )
+
+            if "formats"  not in result__.keys():
+                GLib.idle_add(self.infobar.label.set_label ,_("Playlist not supported"))
+                GLib.idle_add(self.infobar.show__)
+                GLib.idle_add(self.__spinner.stop)
+                GLib.idle_add(self.__spinner.hide)
+                GLib.idle_add(self.info_button.set_sensitive,True)
+                #for k,v in result__.items():
+                #    print()
+                #    print(k)
+                #    print(v)
+                #    print()
+                return
+                
             for i in result__["formats"]:
                 if "format_note" in i.keys():
                     if i['format_note'] == 'tiny' :
                         continue
+                subtitles  = result__["subtitles"] 
+                thumbnails = result__["thumbnails"]
                 rlt    = i["url"]
-                req2   = request.Request(rlt,headers={"User-Agent":"Mozilla/5.0"})
-                opurl2 = request.urlopen(req2,timeout=timeout_)          
-                size   = int(opurl2.headers["Content-Length"])
-                sizes  = round(int(opurl2.headers["Content-Length"])/1024/1024,2)
+                sizes = 0
+                size  = 0
                 self.all_video_info[url].append((result__["id"],
                                                  result__["title"],
                                                  result__["extractor"],
@@ -780,7 +911,9 @@ class FBDownloader(Gtk.ApplicationWindow):
                                                  i["format_id"],
                                                  i["ext"],
                                                  i["format"],
-                                                 url))
+                                                 url,
+                                                 subtitles,
+                                                 thumbnails))
         except Exception as e :
             print(e)
             GLib.idle_add(self.__spinner.stop)
@@ -867,8 +1000,12 @@ class FBDownloader(Gtk.ApplicationWindow):
         h2.pack_start(v2,True,False,0)
         h2.pack_start(v3,True,False,0)
         #ggg = GstWidget(result[-1][4],self)
+        thumbnails = result[-1][-1]
         ggg = Gtk.Image()
-        url_ = result[-1][3]
+        if  thumbnails:
+            url_ = thumbnails[0]["url"]
+        else:
+            url_ = result[-1][3]
         if "ytimg" in url_:
             url_ = url_.split("?")[0]
         file__ = Gio.File.new_for_uri(url_)
@@ -878,8 +1015,11 @@ class FBDownloader(Gtk.ApplicationWindow):
         if not win:
             v1.pack_start(ggg,False,False,0)
         store = Gtk.ListStore(str,str,str,str,str,int,int,str,str,str,str)
+
         for i in result:
-            store.append(i)
+            store.append(i[:-2])
+        
+
 
         combo = Gtk.ComboBox.new_with_model(store)
         renderer_text = Gtk.CellRendererText()
@@ -890,6 +1030,26 @@ class FBDownloader(Gtk.ApplicationWindow):
         combo.set_active(len(store)-1)
         combo.show_all()
         
+        subtitles = result[-1][-2]
+        store2 = Gtk.ListStore(str,str,str)
+        
+        if not subtitles:
+            store2.append(["","",""])
+        else:
+            for k,v in subtitles.items():
+                for i in v:
+                    store2.append([k+"-"+i["ext"],i["ext"],i["url"]])
+                store2.append([k+"-"+"best","best",""])
+                
+        combo2 = Gtk.ComboBox.new_with_model(store2)
+        renderer_text2 = Gtk.CellRendererText()
+        renderer_text2.props.ellipsize  = Pango.EllipsizeMode.END
+        renderer_text2.props.max_width_chars = 20
+        combo2.pack_start(renderer_text2, True)
+        combo2.add_attribute(renderer_text2, "text", 0)
+        combo2.set_active(len(store2)-1)
+        combo2.show_all()
+        
         close_button = Gtk.Button()
         close_button.props.label = _("Remove Task")
         button = Gtk.Button()
@@ -898,13 +1058,15 @@ class FBDownloader(Gtk.ApplicationWindow):
         cancel_button.props.label = _("Cancel")
         cancel_button.set_sensitive(False)
         v2.pack_start(combo,True,False,0)
+        v2.pack_start(combo2,True,False,0)
         v2.pack_start(close_button,True,False,0)
         v3.pack_start(button,True,False,0)
         v3.pack_start(cancel_button,True,False,0)
+        
         if not win:
             h.pack_start(v1,True,False,0)
 
-        button.connect("clicked",self.on_download,progb,store,combo,cancel_button,close_button)
+        button.connect("clicked",self.on_download,progb,store,combo,cancel_button,close_button,store2,combo2)
         close_button.connect("clicked",self.on_close,row,result)
         self.show_all()
         progb.hide()
@@ -925,24 +1087,20 @@ class FBDownloader(Gtk.ApplicationWindow):
         change_metadata_info(self.config__)
 
         
-    def on_download(self,button,progressbar,store,combo,cancel_button,close_button):
-        mode = "wb"
-        if win:
-            saveas_location = os.path.join(GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS),store[combo.get_active_iter()][1].replace("/"," ").replace("\\"," ")+store[combo.get_active_iter()][-2]+"."+store[combo.get_active_iter()][8])
-        else:
-            saveas_location = os.path.join(GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS),store[combo.get_active_iter()][1].replace("/"," ").replace("\\"," ")+store[combo.get_active_iter()][-2]+"."+store[combo.get_active_iter()][8])
-            
-        if  os.path.exists(saveas_location):
-            if os.stat(saveas_location).st_size == int(store[combo.get_active_iter()][6]):
-                progressbar.set_text(_("Already Exists"))
-                progressbar.show()
-                return
-                
-            mode = "ab"
-        if win:
-            t = DownloadFile(self,progressbar,button,store[combo.get_active_iter()][4],GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS),store[combo.get_active_iter()][1].replace("/"," ").replace("\\"," ")+store[combo.get_active_iter()][-2]+"."+store[combo.get_active_iter()][8],store[combo.get_active_iter()][6],cancel_button,close_button,mode)
-        else:
-            t = DownloadFile(self,progressbar,button,store[combo.get_active_iter()][4],GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS),store[combo.get_active_iter()][1].replace("/"," ").replace("\\"," ")+store[combo.get_active_iter()][-2]+"."+store[combo.get_active_iter()][8],store[combo.get_active_iter()][6],cancel_button,close_button,mode)
+    def on_download(self,button,progressbar,store,combo,cancel_button,close_button,store2,combo2):
+        subtitle    = store2[combo2.get_active_iter()][0]
+        t = DownloadFile(self,
+                         progressbar=progressbar,
+                         button=button,
+                         link=store[combo.get_active_iter()][-1],
+                         location=GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS),
+                         format_=store[combo.get_active_iter()][-4],
+                         username=self.name_entry.get_text().strip(),
+                         password=self.password_entry.get_text().strip(),
+                         videopassword=self.video_pass_entry.get_text().strip(),
+                         cancel_button=cancel_button,
+                         close_button=close_button,
+                         subtitle=subtitle)
         t.setDaemon(True)
         cancel_button.connect("clicked",self.on_cancel_button_clicked,t)
         cancel_button.set_sensitive(True)
@@ -1055,19 +1213,22 @@ class FBDownloader(Gtk.ApplicationWindow):
             except:
                 pass
         GLib.idle_add(self.statuspage2.set_icon_name,"face-cool-symbolic")
-        GLib.idle_add(self.statuspage2.set_description,(_("Version : ")+youtube_dl.version.__version__))
         GLib.idle_add(self.installspinner.stop)
         GLib.idle_add(self.installspinner.hide)
         if self.__isinstall:
+            GLib.idle_add(self.statuspage2.set_description,(_("Version : ")+youtube_dl.version.__version__))
             GLib.idle_add(self.vbox2.remove,self.installbutton)
             GLib.idle_add(self.vbox2.pack_start,self.check_youtube_dl_update_button,False,False,0)
             GLib.idle_add(self.vbox.set_sensitive,True)
-
+            GLib.idle_add(self.check_youtube_dl_update_button.set_sensitive,True)
+        else:
+            GLib.idle_add(self.statuspage2.set_description,(_("New Version : ")+last_version))
+            GLib.idle_add(self.check_for_update_infobar.label.set_label ,"Please Restart Pysavetube")
+            GLib.idle_add(self.check_for_update_infobar.show__)
         self.__isinstall = True
-        GLib.idle_add(self.check_youtube_dl_update_button.set_sensitive,True)
         GLib.idle_add(self.installbutton.set_sensitive,True)
         GLib.idle_add(self.show_all)
-        GLib.idle_add(self.infobar.hide__)
+
         
     def on_youtube_dl_version_check_done(self,parent,result,remote_version,local_version):
         if result == "e":
@@ -1081,9 +1242,9 @@ class FBDownloader(Gtk.ApplicationWindow):
             msg = _('youtube-dl need update to:')+'\n' + remote_version
             self.__isinstall = False
             GLib.idle_add(self.statuspage2.set_icon_name,"face-surprise-symbolic")
-            self.installbutton.emit("clicked")
+            GLib.idle_add(self.installbutton.emit,"clicked")
             
-        self.check_for_update_infobar.label.props.label = msg
+        GLib.idle_add(self.check_for_update_infobar.label.set_label ,msg)
         GLib.idle_add(self.check_for_update_infobar.show__)
         
         
