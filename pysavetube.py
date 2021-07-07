@@ -375,7 +375,6 @@ class DownloadFile(GObject.Object,threading.Thread):
         ydl_opts["progress_hooks"]    = []
         ydl_opts["progress_hooks"].append(self.my_hook)
         ydl_opts["outtmpl"]           = self.outtmpl 
-        print(ydl_opts)
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([self.link])
             
@@ -897,7 +896,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         h.set_margin_bottom(5)
         h.props.spacing = 5
         row.add(v)
-        self.listbox.add(row)
+        self.listbox.insert(row,0)
         label = Gtk.Label()
         label.set_margin_top(5)
         label.set_margin_bottom(5)
@@ -1022,7 +1021,8 @@ class FBDownloader(Gtk.ApplicationWindow):
             username = ""
             password = ""
             videopassword = ""
-
+        self.password_entry.set_text("")
+        self.video_pass_entry.set_text("")
             
         t = DownloadFile(self,
                          progressbar=progressbar,
