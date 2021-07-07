@@ -1,6 +1,6 @@
 Name:           pysavetube
 Version:        1.0
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Videos Downloader
 License:        GPLv3     
 URL:            https://github.com/yucefsourani/pysavetube
@@ -45,6 +45,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Wed Jul 07 2021 yucuf sourani <youssef.m.sourani@gmail.com> 1.0-3
+- Release 3
+
 * Wed Jul 07 2021 yucuf sourani <youssef.m.sourani@gmail.com> 1.0-2
 - Release 2
 
