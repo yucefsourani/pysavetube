@@ -22,7 +22,6 @@
 #  
 #
 #support playlist 
-#surport password user and native downloder
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gst', '1.0')
@@ -44,6 +43,8 @@ import tarfile
 import tempfile
 import glob
 
+
+    
 DATADIR      = GLib.get_user_data_dir()
 YOUTYBEDLDIR = os.path.join(DATADIR,"pysavetube") 
 HEADERS={"User-Agent":"Mozilla/5.0"}
@@ -140,7 +141,7 @@ gettext.install('pysavetube', localedir=get_correct_path('locale'))
 
 authors_         = ["Youssef Sourani <youssef.m.sourani@gmail.com>"]
 version_         = "1.0"
-copyright_       = "Copyright © 2020 Youssef Sourani"
+copyright_       = "Copyright © 2021 Youssef Sourani"
 comments_        = "Facebook Videos Downloader"
 website_         = "https://github.com/yucefsourani/pysavetube"
 translators_     = "Arabic Yucef Sourani"
@@ -303,115 +304,6 @@ class GstWidget(Gtk.EventBox):
             self.overlay.add_overlay(self.play)
             self.play.show_all()
 
-            
-class DownloadFile(GObject.Object,threading.Thread):
-    __gsignals__ = { "break"     : (GObject.SignalFlags.RUN_LAST, None, ())
-    }
-    
-    def __init__(self,parent,progressbar,button,link,location=None,filename=None,fsize=None,cancel_button=None,close_button=None,mode="w",header={"User-Agent":"Mozilla/5.0"}):
-        GObject.Object.__init__(self)
-        threading.Thread.__init__(self)
-        self.parent        = parent
-        self.progressbar   = progressbar
-        self.button        = button
-        self.link          = link
-        self.location      = location
-        self.filename      = filename
-        self.fsize         = fsize
-        self.break_        = False
-        self.cancel_button = cancel_button
-        self.close_button  = close_button
-        self.mode          = mode
-        self.header        = header
-        self.connect("break",self.on_break)
-
-        
-    def on_break(self,s):
-        self.break_ = True        
-            
-    def run(self):
-        self.break_ = False
-        GLib.idle_add(self.progressbar.show)
-        GLib.idle_add(self.button.set_sensitive,False)
-        GLib.idle_add(self.close_button.set_sensitive,False)
-        saveas_location = os.path.join(self.location,self.filename) 
-        ch = 64*1024 
-        try:
-            with open(saveas_location, self.mode) as op:
-                if self.mode == "wb":
-                    current_size = 0
-                else:
-                    op.seek(0,os.SEEK_END)
-                    current_size = op.tell()
-                psize = current_size
-                if current_size == int(self.fsize):
-                    GLib.idle_add(self.progressbar.set_fraction,0.0)
-                    GLib.idle_add(self.progressbar.set_text,_("Done"))
-                    GLib.idle_add(self.button.set_sensitive,True)
-                    GLib.idle_add(self.close_button.set_sensitive,True)
-                    GLib.idle_add(self.cancel_button.set_sensitive,False)
-                    try:
-                        op.close()
-                    except Exception as e:
-                        pass
-                    return
-                if "Range" in self.header.keys():
-                    self.header["Range"] = "bytes={}-{}".format(current_size,self.fsize)
-                else:
-                    self.header.setdefault("Range", "bytes={}-{}".format(current_size,self.fsize))
-                
-                url   = request.Request(self.link,headers=self.header)
-                opurl = request.urlopen(url,timeout=timeout_)
-
-                while True:
-                    if self.break_:
-                        GLib.idle_add(self.progressbar.set_fraction,0.0)
-                        GLib.idle_add(self.progressbar.set_text,_("Canceled"))
-                        GLib.idle_add(self.button.set_sensitive,True)
-                        GLib.idle_add(self.close_button.set_sensitive,True)
-                        GLib.idle_add(self.cancel_button.set_sensitive,False)
-                        try:
-                            op.close()
-                            opurl.close()
-                        except Exception as e:
-                            pass
-                        return
-                    op.flush()
-                    if psize >=int(self.fsize):
-                        break
-                    n = int(self.fsize)-psize
-                    if n<ch:
-                        ch = n
-
-                    chunk = opurl.read(ch)
-
-                    count = int((psize*100)//int(self.fsize))
-                    fraction = count/100
-                    op.write(chunk)
-                    psize += ch
-                    GLib.idle_add(self.progressbar.set_fraction,fraction)
-                    GLib.idle_add(self.progressbar.set_text,str(count)+"%"+" "+str(psize)+"/"+str(self.fsize)+" B")
-                
-            GLib.idle_add(self.progressbar.set_fraction,1.0)
-            GLib.idle_add(self.progressbar.set_text,_("Done"))
-        except Exception as e:
-            print(e)
-            GLib.idle_add(self.progressbar.set_fraction,0.0)
-            GLib.idle_add(self.progressbar.set_text,_("Fail"))
-            GLib.idle_add(self.button.set_sensitive,True)
-            GLib.idle_add(self.close_button.set_sensitive,True)
-            GLib.idle_add(self.cancel_button.set_sensitive,False)
-            return False
-        finally:
-            try:
-                opurl.close()
-            except Exception as e:
-                pass
-            
-        GLib.idle_add(self.progressbar.set_fraction,0.0)
-        GLib.idle_add(self.button.set_sensitive,True)
-        GLib.idle_add(self.close_button.set_sensitive,True)
-        GLib.idle_add(self.cancel_button.set_sensitive,False)
 
 class DownloadFile(GObject.Object,threading.Thread):
     __gsignals__ = { "break"     : (GObject.SignalFlags.RUN_LAST, None, ())
@@ -475,7 +367,7 @@ class DownloadFile(GObject.Object,threading.Thread):
         else:
             self.outtmpl = os.path.join(self.location,self.outtmpl)
             
-
+        
         ydl_opts["socket_timeout"]    = timeout_
         ydl_opts["ignoreerrors"]      = self.ignoreerrors
         ydl_opts["nooverwrites"]      = self.nooverwrites
@@ -483,10 +375,18 @@ class DownloadFile(GObject.Object,threading.Thread):
         ydl_opts["progress_hooks"]    = []
         ydl_opts["progress_hooks"].append(self.my_hook)
         ydl_opts["outtmpl"]           = self.outtmpl 
+        print(ydl_opts)
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([self.link])
             
     def my_hook(self,d):
+        if self.break_:
+            GLib.idle_add(self.progressbar.set_fraction,0.0)
+            GLib.idle_add(self.progressbar.set_text,_("Fail"))
+            GLib.idle_add(self.button.set_sensitive,True)
+            GLib.idle_add(self.close_button.set_sensitive,True)
+            GLib.idle_add(self.cancel_button.set_sensitive,False)
+            raise Exception('Canceled!')
         status  = d["status"] 
         if status == 'finished':
             GLib.idle_add(self.progressbar.set_fraction,0.0)
@@ -737,8 +637,11 @@ class FBDownloader(Gtk.ApplicationWindow):
         flap.set_content(self.stack1)
         flap.set_separator(Gtk.Separator())
         
+        avatar_sw = Gtk.ScrolledWindow()
+        avatar_sw.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC )
         avavat_vbox = Gtk.VBox()
         avavat_vbox.set_hexpand(False)
+        avavat_vbox.set_vexpand(True)
         avatar = Handy.Avatar()
         avatar.set_show_initials(True)
         avatar.set_size(150)
@@ -755,6 +658,13 @@ class FBDownloader(Gtk.ApplicationWindow):
         label_avatar2.set_justify(Gtk.Justification.CENTER)
         label_avatar2.get_style_context().add_class("h2")
         label_avatar2.props.label = "V 1.0\nLicense : GPLv3"
+
+        label_avatar3 = Gtk.Label()
+        label_avatar3.props.ellipsize = Pango.EllipsizeMode.END
+        label_avatar3.set_justify(Gtk.Justification.CENTER)
+        label_avatar3.get_style_context().add_class("h3")
+        label_avatar3.props.label = copyright_
+        
         
         linkbutton_avatar2 = Gtk.LinkButton.new_with_label("https://github.com/yucefsourani/pysavetube","WebSite")
         
@@ -796,13 +706,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.use_password_switch     = Gtk.Switch()
         use_password_switch_grid.add(self.use_password_switch)
         
-        action_row.add(self.name_entry)
-        action_row.add(self.password_entry)
-        action_row.add(self.video_pass_entry)
-        action_row.add(Gtk.Separator())
-        action_row.add(switch_label)
-        action_row.add(use_password_switch_grid)
-        listbox.add(action_row) # for later
+
         
         
         action_row2 = Handy.ExpanderRow.new()
@@ -818,13 +722,23 @@ class FBDownloader(Gtk.ApplicationWindow):
         spin_grid.add(spinbutton)
         action_row2.add(spin_grid)
         listbox.add(action_row2)
+
+        action_row.add(self.name_entry)
+        action_row.add(self.password_entry)
+        action_row.add(self.video_pass_entry)
+        action_row.add(Gtk.Separator())
+        action_row.add(switch_label)
+        action_row.add(use_password_switch_grid)
+        listbox.add(action_row) 
         
         avavat_vbox.pack_start(avatar,False,False,10)
         avavat_vbox.pack_start(label_avatar1,False,False,10)
         avavat_vbox.pack_start(label_avatar2,False,False,10)
+        avavat_vbox.pack_start(label_avatar3,False,False,10)
         avavat_vbox.pack_start(linkbutton_avatar2,False,False,10)
         avavat_vbox.pack_start(listbox,False,False,0)
-        flap.set_flap(avavat_vbox)
+        avatar_sw.add(avavat_vbox)
+        flap.set_flap(avatar_sw)
 
         view_switcher_title.connect("notify::title-visible",self.on_headerbar_squeezer_notify,view_switcher_bar)
         
@@ -870,8 +784,9 @@ class FBDownloader(Gtk.ApplicationWindow):
                 if user_ and pass_:
                     options["username"] = user_
                     options["password"] = pass_
-                elif video_pass:
-                    options["videopassword"] = video_pass 
+                if video_pass:
+                    options["videopassword"] = video_pass
+            print(options)
             ydl = youtube_dl.YoutubeDL(options)
             with ydl:
                 result__ = ydl.extract_info(
@@ -896,8 +811,14 @@ class FBDownloader(Gtk.ApplicationWindow):
                 if "format_note" in i.keys():
                     if i['format_note'] == 'tiny' :
                         continue
-                subtitles  = result__["subtitles"] 
-                thumbnails = result__["thumbnails"]
+                if "subtitles" in result__.keys():
+                    subtitles  = result__["subtitles"]
+                else:
+                    subtitles  = {}
+                if  "thumbnails" in result__.keys():
+                    thumbnails = result__["thumbnails"]
+                else:
+                    thumbnails = []
                 rlt    = i["url"]
                 sizes = 0
                 size  = 0
@@ -1040,6 +961,7 @@ class FBDownloader(Gtk.ApplicationWindow):
                 for i in v:
                     store2.append([k+"-"+i["ext"],i["ext"],i["url"]])
                 store2.append([k+"-"+"best","best",""])
+            store2.append(["","",""])
                 
         combo2 = Gtk.ComboBox.new_with_model(store2)
         renderer_text2 = Gtk.CellRendererText()
@@ -1089,15 +1011,28 @@ class FBDownloader(Gtk.ApplicationWindow):
         
     def on_download(self,button,progressbar,store,combo,cancel_button,close_button,store2,combo2):
         subtitle    = store2[combo2.get_active_iter()][0]
+        if self.use_password_switch.get_active():
+            username = self.name_entry.get_text().strip()
+            password=self.password_entry.get_text().strip()
+            videopassword=self.video_pass_entry.get_text().strip()
+            if not username and not password:
+                username = ""
+                password = ""
+        else:
+            username = ""
+            password = ""
+            videopassword = ""
+
+            
         t = DownloadFile(self,
                          progressbar=progressbar,
                          button=button,
                          link=store[combo.get_active_iter()][-1],
                          location=GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_VIDEOS),
                          format_=store[combo.get_active_iter()][-4],
-                         username=self.name_entry.get_text().strip(),
-                         password=self.password_entry.get_text().strip(),
-                         videopassword=self.video_pass_entry.get_text().strip(),
+                         username=username,
+                         password=password,
+                         videopassword=videopassword,
                          cancel_button=cancel_button,
                          close_button=close_button,
                          subtitle=subtitle)
