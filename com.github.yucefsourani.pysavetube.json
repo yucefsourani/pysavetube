@@ -9,7 +9,7 @@
         "--share=ipc",
         "--socket=fallback-x11",
         "--socket=wayland",
-        "--filesystem=home",
+        "--filesystem=xdg-videos",
         "--device=dri",
         "--socket=pulseaudio"
     ],
@@ -40,7 +40,6 @@
         },
         {
             "name" : "pysavetube",
-            "builddir" : true,
             "buildsystem" : "simple",
             "sources" : [
                 {
@@ -50,10 +49,11 @@
             ],
             "build-commands" : [
                 "make flatpakinstall"
-            ]
+            ],
+            "post-install": [
+                "mkdir -p /app/share/metainfo",
+                "cp  com.github.yucefsourani.pysavetube.metainfo.xml  /app/share/metainfo"        ]
         }
-    ],
-    "build-options" : {
-        "env" : {        }
-    }
+    ]
 }
+
