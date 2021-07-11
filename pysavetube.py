@@ -813,6 +813,7 @@ class FBDownloader(Gtk.ApplicationWindow):
                 )
 
             if "formats"  not in result__.keys():
+
                 if "entries" in result__.keys():
                     for video_info in result__["entries"][::-1]:
                         rlt      = video_info["webpage_url"]
@@ -835,7 +836,7 @@ class FBDownloader(Gtk.ApplicationWindow):
                             sizes  = 0
                             size   = 0
                             self.all_video_info[rlt].append((video_info["id"],
-                                                                 video_info["title"],
+                                                                 video_info["title"]+"\n\n<span foreground=\"green\">Playlist : {}</span>".format(video_info["playlist_title"])+"\n<span foreground=\"green\">({}/{})</span>".format(video_info["playlist_index"],video_info["n_entries"]),
                                                                  video_info["extractor"],
                                                                  video_info["thumbnail"],
                                                                  rlt,
@@ -969,7 +970,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         label.set_margin_bottom(5)
         label.set_justify(Gtk.Justification.CENTER)
         label.set_selectable(True)
-        label.props.label = result[-1][10]+"\n\n"+result[-1][1]
+        label.set_markup(result[-1][10]+"\n\n"+result[-1][1])
         label.props.ellipsize = Pango.EllipsizeMode.END
         v.pack_start(label,False,False,0)
         v.pack_start(h,False,False,0)
