@@ -42,6 +42,12 @@ gstreamer1-plugins-good-gtk
  
    pysavetube.py
    
+
+# To Use (Arch Linux Aur)
+   
+   yay -S pysavetube
+   
+   
 # Other Distro 
 
    clone repo and run pysavetube.py
