@@ -48,7 +48,12 @@ gstreamer1-plugins-good-gtk
    yay -S pysavetube
    
    
-# Other Distro 
+# FLatpak bundle (64bit)
+   
+   cd ~/Downloads && wget https://github.com/yucefsourani/pysavetube/releases/download/1.0.2/pysavetube-1.0.flatpak && flatpak install pysavetube-1.0.flatpak --user 
+   
+   
+# Other 
 
    clone repo and run pysavetube.py
 
