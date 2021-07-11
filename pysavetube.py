@@ -335,6 +335,7 @@ class DownloadFile(GObject.Object,threading.Thread):
         self.continue_dl   = continue_dl
         self.subtitle      = subtitle
         self.connect("break",self.on_break)
+        self.canceled = False
 
 
         
@@ -375,13 +376,25 @@ class DownloadFile(GObject.Object,threading.Thread):
         ydl_opts["progress_hooks"]    = []
         ydl_opts["progress_hooks"].append(self.my_hook)
         ydl_opts["outtmpl"]           = self.outtmpl 
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([self.link])
+        try:
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([self.link])
+        except Exception as e:
+            GLib.idle_add(self.progressbar.set_fraction,0.0)
+            if self.canceled:
+                GLib.idle_add(self.progressbar.set_text,_("Canceled!"))
+            else:
+                GLib.idle_add(self.progressbar.set_text,_("Fail"))
+            GLib.idle_add(self.button.set_sensitive,True)
+            GLib.idle_add(self.close_button.set_sensitive,True)
+            GLib.idle_add(self.cancel_button.set_sensitive,False)
+            print(e)
             
     def my_hook(self,d):
         if self.break_:
+            self.canceled = True
+            GLib.idle_add(self.progressbar.set_text,_("Canceled!"))
             GLib.idle_add(self.progressbar.set_fraction,0.0)
-            GLib.idle_add(self.progressbar.set_text,_("Fail"))
             GLib.idle_add(self.button.set_sensitive,True)
             GLib.idle_add(self.close_button.set_sensitive,True)
             GLib.idle_add(self.cancel_button.set_sensitive,False)
@@ -395,8 +408,11 @@ class DownloadFile(GObject.Object,threading.Thread):
             GLib.idle_add(self.cancel_button.set_sensitive,False)
             return True
         elif status == "error":
+            if self.canceled:
+                GLib.idle_add(self.progressbar.set_text,_("Canceled!"))
+            else:
+                GLib.idle_add(self.progressbar.set_text,_("Fail"))
             GLib.idle_add(self.progressbar.set_fraction,0.0)
-            GLib.idle_add(self.progressbar.set_text,_("Fail"))
             GLib.idle_add(self.button.set_sensitive,True)
             GLib.idle_add(self.close_button.set_sensitive,True)
             GLib.idle_add(self.cancel_button.set_sensitive,False)
@@ -785,7 +801,7 @@ class FBDownloader(Gtk.ApplicationWindow):
                     options["password"] = pass_
                 if video_pass:
                     options["videopassword"] = video_pass
-            print(options)
+
             ydl = youtube_dl.YoutubeDL(options)
             with ydl:
                 result__ = ydl.extract_info(
@@ -794,46 +810,96 @@ class FBDownloader(Gtk.ApplicationWindow):
                 )
 
             if "formats"  not in result__.keys():
-                GLib.idle_add(self.infobar.label.set_label ,_("Playlist not supported"))
-                GLib.idle_add(self.infobar.show__)
-                GLib.idle_add(self.__spinner.stop)
-                GLib.idle_add(self.__spinner.hide)
-                GLib.idle_add(self.info_button.set_sensitive,True)
-                #for k,v in result__.items():
-                #    print()
-                #    print(k)
-                #    print(v)
-                #    print()
-                return
+                if "entries" in result__.keys():
+                    for video_info in result__["entries"][::-1]:
+                        isexists = True
+                        rlt      = video_info["webpage_url"]
+                        if rlt not in self.all_video_info.keys():
+                            self.all_video_info.setdefault(rlt,[])
+                            isexists = False
+                        for i in video_info["formats"]:
+                            if "format_note" in i.keys():
+                                if i['format_note'] == 'tiny' :
+                                    continue
+                            if "subtitles" in video_info.keys():
+                                subtitles  = video_info["subtitles"]
+                            else:
+                                subtitles  = {}
+                            if  "thumbnails" in video_info.keys():
+                                thumbnails = video_info["thumbnails"]
+                            else:
+                                thumbnails = []
+                            
+                            sizes  = 0
+                            size   = 0
+                            
+                            if not isexists:
+                                self.all_video_info[rlt].append((video_info["id"],
+                                                                 video_info["title"],
+                                                                 video_info["extractor"],
+                                                                 video_info["thumbnail"],
+                                                                 rlt,
+                                                                 sizes,
+                                                                 size,
+                                                                 i["format_id"],
+                                                                 i["ext"],
+                                                                 i["format"],
+                                                                 rlt,
+                                                                 subtitles,
+                                                                 thumbnails))
+                                            
+                                    
+                            if  result__["extractor"]  in DROPED:
+                                GLib.idle_add(self.__spinner.stop)
+                                GLib.idle_add(self.__spinner.hide)
+                                GLib.idle_add(self.info_button.set_sensitive,True)
+                                GLib.idle_add(self.infobar.label.set_label ,_("Extractor not supported"))
+                                GLib.idle_add(self.infobar.show__)
+                                del self.all_video_info[rlt]
+                                return
+                        if not isexists:
+                            GLib.idle_add(self.emit,"ongetlinksdone",rlt)
+                    GLib.idle_add(self.__spinner.stop)
+                    GLib.idle_add(self.__spinner.hide)
+                    GLib.idle_add(self.info_button.set_sensitive,True)
+                    return
+                else:
+                    GLib.idle_add(self.infobar.label.set_label ,_("Task not supported"))
+                    GLib.idle_add(self.infobar.show__)
+                    GLib.idle_add(self.__spinner.stop)
+                    GLib.idle_add(self.__spinner.hide)
+                    GLib.idle_add(self.info_button.set_sensitive,True)
+                    return
                 
-            for i in result__["formats"]:
-                if "format_note" in i.keys():
-                    if i['format_note'] == 'tiny' :
-                        continue
-                if "subtitles" in result__.keys():
-                    subtitles  = result__["subtitles"]
-                else:
-                    subtitles  = {}
-                if  "thumbnails" in result__.keys():
-                    thumbnails = result__["thumbnails"]
-                else:
-                    thumbnails = []
-                rlt    = i["url"]
-                sizes = 0
-                size  = 0
-                self.all_video_info[url].append((result__["id"],
-                                                 result__["title"],
-                                                 result__["extractor"],
-                                                 result__["thumbnail"],
-                                                 rlt,
-                                                 sizes,
-                                                 size,
-                                                 i["format_id"],
-                                                 i["ext"],
-                                                 i["format"],
-                                                 url,
-                                                 subtitles,
-                                                 thumbnails))
+            else:
+                for i in result__["formats"]:
+                    if "format_note" in i.keys():
+                        if i['format_note'] == 'tiny' :
+                            continue
+                    if "subtitles" in result__.keys():
+                        subtitles  = result__["subtitles"]
+                    else:
+                        subtitles  = {}
+                    if  "thumbnails" in result__.keys():
+                        thumbnails = result__["thumbnails"]
+                    else:
+                        thumbnails = []
+                    rlt    = i["url"]
+                    sizes = 0
+                    size  = 0
+                    self.all_video_info[url].append((result__["id"],
+                                                     result__["title"],
+                                                     result__["extractor"],
+                                                     result__["thumbnail"],
+                                                     rlt,
+                                                     sizes,
+                                                     size,
+                                                     i["format_id"],
+                                                     i["ext"],
+                                                     i["format"],
+                                                     url,
+                                                     subtitles,
+                                                     thumbnails))
         except Exception as e :
             print(e)
             GLib.idle_add(self.__spinner.stop)
@@ -847,6 +913,7 @@ class FBDownloader(Gtk.ApplicationWindow):
             GLib.idle_add(self.infobar.show__)
             GLib.idle_add(self.__spinner.stop)
             GLib.idle_add(self.__spinner.hide)
+            del self.all_video_info[url]
             return 
         GLib.idle_add(self.emit,"ongetlinksdone",url)
 
@@ -994,6 +1061,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         
     def on_close(self,button,row,result,force=False): 
         if not force:
+            self.infobar2.hide__()
             self.infobar2.label.props.label = _("Are You Sure\nYou Want To Remove This Task?")
             self.infobar2.send_button = True
             self.infobar2.b.props.label = _("Remove")
@@ -1004,6 +1072,9 @@ class FBDownloader(Gtk.ApplicationWindow):
             return
         self.listbox.remove(row)
         row.destroy()
+        url = result[0][-3]
+        if url in self.all_video_info.keys():
+            del self.all_video_info[url]
         self.config__["current_links"].remove(result)
         change_metadata_info(self.config__)
 
