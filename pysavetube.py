@@ -773,8 +773,10 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.connect("ongetlinksdone",self.on_get_links_done)
 
         for i in self.config__["current_links"]:
+            url = i[0][4]
+            self.all_video_info.setdefault(url,[])
             self.make_listbox_row(i)
-        
+            
     def on_entry_show_hide_passoword_press(self, entry,icon_position,event):
         if event.type == Gdk.EventType.BUTTON_PRESS and event.button.button==1:
             if entry.get_visibility():
@@ -789,7 +791,6 @@ class FBDownloader(Gtk.ApplicationWindow):
         
     def get_links(self,url):
         result = ""
-        self.all_video_info.setdefault(url,[])
         try:
             options = {"youtube_include_dash_manifest" : False , "socket_timeout" : timeout_}
             if self.use_password_switch.get_active():
@@ -812,11 +813,11 @@ class FBDownloader(Gtk.ApplicationWindow):
             if "formats"  not in result__.keys():
                 if "entries" in result__.keys():
                     for video_info in result__["entries"][::-1]:
-                        isexists = True
                         rlt      = video_info["webpage_url"]
                         if rlt not in self.all_video_info.keys():
                             self.all_video_info.setdefault(rlt,[])
-                            isexists = False
+                        else:
+                            continue
                         for i in video_info["formats"]:
                             if "format_note" in i.keys():
                                 if i['format_note'] == 'tiny' :
@@ -829,12 +830,9 @@ class FBDownloader(Gtk.ApplicationWindow):
                                 thumbnails = video_info["thumbnails"]
                             else:
                                 thumbnails = []
-                            
                             sizes  = 0
                             size   = 0
-                            
-                            if not isexists:
-                                self.all_video_info[rlt].append((video_info["id"],
+                            self.all_video_info[rlt].append((video_info["id"],
                                                                  video_info["title"],
                                                                  video_info["extractor"],
                                                                  video_info["thumbnail"],
@@ -857,8 +855,7 @@ class FBDownloader(Gtk.ApplicationWindow):
                                 GLib.idle_add(self.infobar.show__)
                                 del self.all_video_info[rlt]
                                 return
-                        if not isexists:
-                            GLib.idle_add(self.emit,"ongetlinksdone",rlt)
+                        GLib.idle_add(self.emit,"ongetlinksdone",rlt)
                     GLib.idle_add(self.__spinner.stop)
                     GLib.idle_add(self.__spinner.hide)
                     GLib.idle_add(self.info_button.set_sensitive,True)
@@ -872,6 +869,7 @@ class FBDownloader(Gtk.ApplicationWindow):
                     return
                 
             else:
+                self.all_video_info.setdefault(url,[])
                 for i in result__["formats"]:
                     if "format_note" in i.keys():
                         if i['format_note'] == 'tiny' :
