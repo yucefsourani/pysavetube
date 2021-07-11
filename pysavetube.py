@@ -623,6 +623,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.installspinner = Gtk.Spinner()
         self.installspinner.props.no_show_all = True
         self.check_youtube_dl_update_button = Gtk.Button()
+        self.check_youtube_dl_update_button.get_style_context().add_class("suggested-action")
         self.check_youtube_dl_update_button.props.label = _("Update Youtube-dl")
         self.connect("version",self.on_youtube_dl_version_check_done)
         self.check_youtube_dl_update_button.connect("clicked",self.t_check_if_youtube_dl_need_update)
@@ -633,6 +634,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         self.statuspage2.set_title(_("Youtube-dl Status"))
         self.__isinstall = True
         self.installbutton = Gtk.Button()
+        self.installbutton.get_style_context().add_class("suggested-action")
         self.installbutton.props.label = _("Install Youtube-dl")
         self.installbutton.connect("clicked",self.on_install_clicked)
         if  not youtub_dl_exists:
