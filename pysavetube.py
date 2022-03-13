@@ -926,7 +926,7 @@ class FBDownloader(Gtk.ApplicationWindow):
         while Gtk.events_pending():
             Gtk.main_iteration()
         t = threading.Thread(target=self.get_links,args=(url,))
-        t.setDaemon(True)
+        t.Daemon = True
         t.start()
         
     def on_get_links_done(self,mainwindow,link):
@@ -994,11 +994,13 @@ class FBDownloader(Gtk.ApplicationWindow):
             url_ = thumbnails[0]["url"]
         else:
             url_ = result[-1][3]
-        if "ytimg" in url_:
-            url_ = url_.split("?")[0]
-        file__ = Gio.File.new_for_uri(url_)
-        file__.read_async(1,None,self.on_load_image_finish,ggg)
-
+        if url_:
+            if "ytimg" in url_:
+                url_ = url_.split("?")[0]
+            file__ = Gio.File.new_for_uri(url_)
+            file__.read_async(1,None,self.on_load_image_finish,ggg)
+        else:
+            ggg.set_from_icon_name("action-unavailable-symbolic",Gtk.IconSize.DIALOG )
         
         if not win:
             v1.pack_start(ggg,False,False,0)
@@ -1108,7 +1110,7 @@ class FBDownloader(Gtk.ApplicationWindow):
                          cancel_button=cancel_button,
                          close_button=close_button,
                          subtitle=subtitle)
-        t.setDaemon(True)
+        t.Daemon = True
         cancel_button.connect("clicked",self.on_cancel_button_clicked,t)
         cancel_button.set_sensitive(True)
         t.start()

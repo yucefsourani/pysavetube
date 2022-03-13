@@ -1,6 +1,6 @@
 Name:           pysavetube
 Version:        1.0
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Videos Downloader
 License:        GPLv3     
 URL:            https://github.com/yucefsourani/pysavetube
@@ -12,6 +12,7 @@ BuildRequires:  gettext
 Requires:       python3-gobject
 Requires:       gtk3
 Requires:       gettext
+Requires:       gnome-icon-theme
 #Requires:       gstreamer1-plugins-good
 #Requires:       gstreamer1-plugins-good-gtk
 Requires:       libhandy
@@ -45,6 +46,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Mar 13 2022 yucuf sourani <youssef.m.sourani@gmail.com> 1.0-5
+- Release 5
+
 * Sun Jul 11 2021 yucuf sourani <youssef.m.sourani@gmail.com> 1.0-4
 - Release 4
 
